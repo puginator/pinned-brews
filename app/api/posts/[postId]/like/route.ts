@@ -27,7 +27,14 @@ export async function POST(
   });
 
   if (error) {
-    return NextResponse.json({ error: 'Unable to update like right now.' }, { status: 500 });
+    console.error('toggle_post_like failed', error);
+
+    const message =
+      error.code === '42804' || error.message.includes('column "user_id" is of type uuid but expression is of type name')
+        ? 'Your Supabase toggle_post_like function is outdated. Run the updated SQL from supabase/schema.sql and try again.'
+        : error.message || 'Unable to update like right now.';
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
   const result = data?.[0];
@@ -36,4 +43,3 @@ export async function POST(
     likes: result?.likes_count ?? 0,
   });
 }
-

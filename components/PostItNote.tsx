@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Beaker, ExternalLink, Flag, Heart, MapPin, Sparkles, Star } from 'lucide-react';
 import type { FeedPost } from '@/lib/domain/types';
+import { slugify } from '@/lib/utils';
 
 export function PostItNote({
   post,
@@ -17,7 +18,20 @@ export function PostItNote({
   onReport: (id: string) => void;
 }) {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [showHeartBurst, setShowHeartBurst] = useState(false);
   const rotation = (post.id.charCodeAt(post.id.length - 1) % 7) - 3;
+  const previousLikedRef = useRef(post.likedByViewer);
+
+  useEffect(() => {
+    if (post.likedByViewer && !previousLikedRef.current) {
+      setShowHeartBurst(true);
+      const timeout = window.setTimeout(() => setShowHeartBurst(false), 720);
+      previousLikedRef.current = post.likedByViewer;
+      return () => window.clearTimeout(timeout);
+    }
+
+    previousLikedRef.current = post.likedByViewer;
+  }, [post.likedByViewer]);
 
   return (
     <motion.article
@@ -60,7 +74,7 @@ export function PostItNote({
 
           <div className="mt-4 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-nunito text-2xl font-extrabold leading-tight text-stone-900">{post.coffeeName}</h3>
+                <h3 className="font-nunito text-2xl font-extrabold leading-tight text-stone-900">{post.coffeeName}</h3>
               {post.country ? <span className="rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-stone-600">{post.country}</span> : null}
               {post.coffeeUrl ? (
                 <a
@@ -76,13 +90,26 @@ export function PostItNote({
             </div>
 
             <Link
-              href="/roasters"
+              href={`/roasters#${slugify(post.roaster.name)}`}
               onClick={(event) => event.stopPropagation()}
               className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-stone-600 transition hover:text-stone-900"
             >
               <MapPin className="h-4 w-4" />
               {post.roaster.name}
             </Link>
+
+            {post.author.featuredBadges.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {post.author.featuredBadges.map((badge) => (
+                  <span
+                    key={badge.id}
+                    className="rounded-full border border-white/80 bg-white/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-stone-700"
+                  >
+                    {badge.icon} {badge.name}
+                  </span>
+                ))}
+              </div>
+            ) : null}
 
             <div className="mt-3 flex items-center gap-0.5">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -124,11 +151,29 @@ export function PostItNote({
                   event.stopPropagation();
                   void onLike(post.id);
                 }}
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-bold transition ${
-                  post.likedByViewer ? 'bg-rose-500 text-white' : 'bg-white/70 text-rose-600'
+                className={`relative inline-flex items-center gap-2 overflow-hidden rounded-full px-3 py-1.5 text-sm font-bold transition ${
+                  post.likedByViewer ? 'bg-rose-500 text-white shadow-[0_10px_25px_rgba(244,63,94,0.35)]' : 'bg-white/70 text-rose-600'
                 }`}
               >
-                <Heart className={`h-4 w-4 ${post.likedByViewer ? 'fill-white text-white' : ''}`} />
+                <AnimatePresence>
+                  {showHeartBurst ? (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.6 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.15 }}
+                      className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                    >
+                      <HeartBurst />
+                    </motion.span>
+                  ) : null}
+                </AnimatePresence>
+                <motion.span
+                  animate={post.likedByViewer ? { scale: [1, 1.28, 1] } : { scale: 1 }}
+                  transition={{ duration: 0.42, times: [0, 0.45, 1] }}
+                  className="relative z-10"
+                >
+                  <Heart className={`h-4 w-4 ${post.likedByViewer ? 'fill-white text-white' : ''}`} />
+                </motion.span>
                 {post.likesCount}
               </button>
             </div>
@@ -181,3 +226,56 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function HeartBurst() {
+  return (
+    <svg width="54" height="54" viewBox="0 0 54 54" fill="none" aria-hidden="true" className="overflow-visible">
+      <motion.circle
+        cx="27"
+        cy="27"
+        r="10"
+        stroke="rgba(255,255,255,0.85)"
+        strokeWidth="2"
+        initial={{ scale: 0.4, opacity: 0.7 }}
+        animate={{ scale: 2.1, opacity: 0 }}
+        transition={{ duration: 0.55, ease: 'easeOut' }}
+      />
+      <motion.circle
+        cx="27"
+        cy="27"
+        r="6"
+        fill="rgba(255,255,255,0.22)"
+        initial={{ scale: 0.3, opacity: 0.65 }}
+        animate={{ scale: 2.5, opacity: 0 }}
+        transition={{ duration: 0.62, ease: 'easeOut' }}
+      />
+      {[
+        { x: 27, y: 6 },
+        { x: 43, y: 12 },
+        { x: 48, y: 27 },
+        { x: 42, y: 42 },
+        { x: 27, y: 48 },
+        { x: 11, y: 42 },
+        { x: 6, y: 27 },
+        { x: 12, y: 12 },
+      ].map((point, index) => (
+        <motion.circle
+          key={`${point.x}-${point.y}`}
+          cx={point.x}
+          cy={point.y}
+          r="2.25"
+          fill={index % 2 === 0 ? '#fff' : '#ffe4ea'}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: [0, 1.1, 0.2], opacity: [0, 1, 0] }}
+          transition={{ duration: 0.55, delay: index * 0.02, ease: 'easeOut' }}
+        />
+      ))}
+      <motion.path
+        d="M27 35.7l-1.3-1.1C18.4 28.5 13 23.8 13 18.1c0-4 3.1-7.1 7.1-7.1 2.3 0 4.5 1.1 5.9 2.9 1.4-1.8 3.6-2.9 5.9-2.9 4 0 7.1 3.1 7.1 7.1 0 5.7-5.4 10.4-12.7 16.5L27 35.7z"
+        fill="#fff"
+        initial={{ scale: 0.7, opacity: 0.85, transformOrigin: '27px 27px' }}
+        animate={{ scale: [0.7, 1.12, 0.92], opacity: [0.85, 1, 0] }}
+        transition={{ duration: 0.55, ease: 'easeOut' }}
+      />
+    </svg>
+  );
+}

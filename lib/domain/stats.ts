@@ -98,6 +98,40 @@ export function getUserBadges(userId: string, posts: StatsPostInput[]): Badge[] 
     .map(({ progress, target, earned, progressLabel, ...badge }) => badge);
 }
 
+const FEATURED_BADGE_PRIORITY = [
+  'pinned',
+  'taste-maker',
+  'viral-cup',
+  'crowd-pleaser',
+  'community-favorite',
+  'on-a-roll',
+  'streak-starter',
+  'origin-hunter',
+  'across-menu',
+  'dialed-in',
+  'consistent-palate',
+  'roaster-scout',
+  'explorer',
+  'heavy-rotation',
+  'top-shelf',
+] as const;
+
+export function getFeaturedBadges(userId: string, posts: StatsPostInput[], limit = 3): Badge[] {
+  const earned = getUserBadges(userId, posts);
+  const priority = new Map<string, number>(FEATURED_BADGE_PRIORITY.map((id, index) => [id, index]));
+
+  return [...earned]
+    .sort((left, right) => {
+      const leftPriority = priority.get(left.id) ?? Number.MAX_SAFE_INTEGER;
+      const rightPriority = priority.get(right.id) ?? Number.MAX_SAFE_INTEGER;
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+      return left.name.localeCompare(right.name);
+    })
+    .slice(0, limit);
+}
+
 export function getAchievementProgress(userId: string | null, posts: StatsPostInput[]): AchievementProgress[] {
   if (!userId) {
     return BADGES.map((badge) => ({

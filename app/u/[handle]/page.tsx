@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getAuthContext } from '@/lib/server/auth';
-import { getUserBadges, getUserStats } from '@/lib/domain/stats';
+import { getFeaturedBadges, getUserBadges, getUserStats } from '@/lib/domain/stats';
 import { getPostsForUserId, getPostStatsInputs } from '@/lib/server/posts';
 import { ProfilePageClient } from '@/components/profile/ProfilePageClient';
 
@@ -39,9 +39,9 @@ export default async function ProfilePage({
     updatedAt: profileRow.updated_at,
     stats: getUserStats(profileRow.id, statsInputs),
     badges: getUserBadges(profileRow.id, statsInputs),
+    featuredBadges: getFeaturedBadges(profileRow.id, statsInputs, 3),
     recentPosts,
   };
 
   return <ProfilePageClient initialProfile={publicProfile} viewer={viewer} />;
 }
-

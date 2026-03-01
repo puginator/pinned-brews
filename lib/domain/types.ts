@@ -61,7 +61,7 @@ export type PostRecord = {
 };
 
 export type FeedPost = PostRecord & {
-  author: Pick<ProfileRecord, 'id' | 'handle' | 'displayName' | 'avatar'>;
+  author: Pick<ProfileRecord, 'id' | 'handle' | 'displayName' | 'avatar'> & { featuredBadges: Badge[] };
   roaster: Pick<RoasterRecord, 'id' | 'name' | 'location' | 'logo' | 'website'>;
   likedByViewer: boolean;
   reportable: boolean;
@@ -70,6 +70,7 @@ export type FeedPost = PostRecord & {
 export type PublicProfile = ProfileRecord & {
   stats: UserStats;
   badges: Badge[];
+  featuredBadges: Badge[];
   recentPosts: FeedPost[];
 };
 
@@ -99,7 +100,7 @@ export type UserStats = {
 };
 
 export type LeaderboardEntry = {
-  profile: Pick<ProfileRecord, 'id' | 'handle' | 'displayName' | 'avatar'>;
+  profile: Pick<ProfileRecord, 'id' | 'handle' | 'displayName' | 'avatar'> & { featuredBadges: Badge[] };
   stats: UserStats;
 };
 

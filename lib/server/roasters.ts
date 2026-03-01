@@ -4,6 +4,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/server/database.types';
 import type { RoasterPassportCard, RoasterRecord } from '@/lib/domain/types';
 
+function compareRoastersByName(left: Pick<RoasterRecord, 'name'>, right: Pick<RoasterRecord, 'name'>) {
+  return left.name.localeCompare(right.name, undefined, { sensitivity: 'base' });
+}
+
 function mapRoaster(row: Database['public']['Tables']['roasters']['Row']): RoasterRecord {
   return {
     id: row.id,
@@ -25,7 +29,7 @@ export async function getActiveRoasters(supabase: SupabaseClient<Database>) {
     .from('roasters')
     .select('*')
     .eq('status', 'active')
-    .order('created_at', { ascending: true });
+    .order('name', { ascending: true });
 
   if (error) {
     throw error;
@@ -36,7 +40,7 @@ export async function getActiveRoasters(supabase: SupabaseClient<Database>) {
 
 export async function getRoasterCards(supabase: SupabaseClient<Database>, viewerId?: string | null) {
   const [roastersResult, postsResult, viewerPostsResult] = await Promise.all([
-    supabase.from('roasters').select('*').eq('status', 'active').order('created_at', { ascending: true }),
+    supabase.from('roasters').select('*').eq('status', 'active').order('name', { ascending: true }),
     supabase
       .from('posts')
       .select('id, roaster_id, coffee_name')
@@ -67,14 +71,15 @@ export async function getRoasterCards(supabase: SupabaseClient<Database>, viewer
     postsByRoaster.set(post.roaster_id, existing);
   }
 
-  return (roastersResult.data ?? []).map((row) => {
-    const favorites = Array.from(new Set(postsByRoaster.get(row.id) ?? [])).slice(0, 6);
-    return {
-      ...mapRoaster(row),
-      communityFavorites: favorites,
-      postCount: (postsByRoaster.get(row.id) ?? []).length,
-      pinnedByViewer: viewerRoasterIds.has(row.id),
-    } satisfies RoasterPassportCard;
-  });
+  return (roastersResult.data ?? [])
+    .map((row) => {
+      const favorites = Array.from(new Set(postsByRoaster.get(row.id) ?? [])).slice(0, 6);
+      return {
+        ...mapRoaster(row),
+        communityFavorites: favorites,
+        postCount: (postsByRoaster.get(row.id) ?? []).length,
+        pinnedByViewer: viewerRoasterIds.has(row.id),
+      } satisfies RoasterPassportCard;
+    })
+    .sort(compareRoastersByName);
 }
-

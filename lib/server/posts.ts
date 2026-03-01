@@ -1,6 +1,7 @@
 import 'server-only';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { getFeaturedBadges } from '@/lib/domain/stats';
 import type { Database } from '@/lib/server/database.types';
 import type { FeedPost } from '@/lib/domain/types';
 
@@ -91,7 +92,12 @@ type PostRow = {
   } | null;
 };
 
-function mapFeedPost(row: PostRow, likedPostIds: Set<string>, viewerId?: string | null): FeedPost | null {
+function mapFeedPost(
+  row: PostRow,
+  likedPostIds: Set<string>,
+  featuredBadgesByUserId: Map<string, FeedPost['author']['featuredBadges']>,
+  viewerId?: string | null,
+): FeedPost | null {
   if (!row.author || !row.roaster || row.roaster.status !== 'active' || row.status !== 'active') {
     return null;
   }
@@ -124,6 +130,7 @@ function mapFeedPost(row: PostRow, likedPostIds: Set<string>, viewerId?: string 
       handle: row.author.handle,
       displayName: row.author.display_name,
       avatar: row.author.avatar,
+      featuredBadges: featuredBadgesByUserId.get(row.author.id) ?? [],
     },
     roaster: {
       id: row.roaster.id,
@@ -151,6 +158,44 @@ async function getLikedPostIds(supabase: SupabaseClient<Database>, viewerId: str
   return new Set((data ?? []).map((row) => row.post_id));
 }
 
+export async function getStatsInputsForUserIds(supabase: SupabaseClient<Database>, userIds: string[]) {
+  if (userIds.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('posts')
+    .select('id, user_id, roaster_id, brew_method, flavor_profiles, rating, likes_count, country, process, created_at')
+    .eq('status', 'active')
+    .in('user_id', userIds);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    roasterId: row.roaster_id,
+    brewMethod: row.brew_method,
+    flavorProfiles: row.flavor_profiles ?? [],
+    rating: Number(row.rating),
+    likesCount: row.likes_count,
+    country: row.country,
+    process: row.process,
+    createdAt: row.created_at,
+  }));
+}
+
+async function getFeaturedBadgesByUserId(supabase: SupabaseClient<Database>, userIds: string[], limit: number) {
+  const uniqueUserIds = [...new Set(userIds)];
+  const statsInputs = await getStatsInputsForUserIds(supabase, uniqueUserIds);
+
+  return new Map(
+    uniqueUserIds.map((userId) => [userId, getFeaturedBadges(userId, statsInputs, limit)]),
+  );
+}
+
 export async function getFeedPosts(supabase: SupabaseClient<Database>, viewerId?: string | null) {
   const { data, error } = await supabase
     .from('posts')
@@ -164,9 +209,14 @@ export async function getFeedPosts(supabase: SupabaseClient<Database>, viewerId?
 
   const rows = (data ?? []) as unknown as PostRow[];
   const likedPostIds = viewerId ? await getLikedPostIds(supabase, viewerId, rows.map((row) => row.id)) : new Set<string>();
+  const featuredBadgesByUserId = await getFeaturedBadgesByUserId(
+    supabase,
+    rows.map((row) => row.user_id),
+    2,
+  );
 
   return rows
-    .map((row) => mapFeedPost(row, likedPostIds, viewerId))
+    .map((row) => mapFeedPost(row, likedPostIds, featuredBadgesByUserId, viewerId))
     .filter((row): row is FeedPost => row !== null);
 }
 
@@ -184,9 +234,14 @@ export async function getPostsForUserId(supabase: SupabaseClient<Database>, user
 
   const rows = (data ?? []) as unknown as PostRow[];
   const likedPostIds = viewerId ? await getLikedPostIds(supabase, viewerId, rows.map((row) => row.id)) : new Set<string>();
+  const featuredBadgesByUserId = await getFeaturedBadgesByUserId(
+    supabase,
+    rows.map((row) => row.user_id),
+    2,
+  );
 
   return rows
-    .map((row) => mapFeedPost(row, likedPostIds, viewerId))
+    .map((row) => mapFeedPost(row, likedPostIds, featuredBadgesByUserId, viewerId))
     .filter((row): row is FeedPost => row !== null);
 }
 
@@ -228,8 +283,13 @@ export async function getMostLovedPosts(supabase: SupabaseClient<Database>, view
 
   const rows = (data ?? []) as unknown as PostRow[];
   const likedPostIds = viewerId ? await getLikedPostIds(supabase, viewerId, rows.map((row) => row.id)) : new Set<string>();
+  const featuredBadgesByUserId = await getFeaturedBadgesByUserId(
+    supabase,
+    rows.map((row) => row.user_id),
+    2,
+  );
 
   return rows
-    .map((row) => mapFeedPost(row, likedPostIds, viewerId))
+    .map((row) => mapFeedPost(row, likedPostIds, featuredBadgesByUserId, viewerId))
     .filter((row): row is FeedPost => row !== null);
 }

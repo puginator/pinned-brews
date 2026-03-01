@@ -5,6 +5,11 @@ import { motion } from 'motion/react';
 import { ExternalLink, MapPin, PlusCircle, Stamp } from 'lucide-react';
 import type { RoasterPassportCard, Viewer } from '@/lib/domain/types';
 import { ReportDialog } from '@/components/ReportDialog';
+import { slugify } from '@/lib/utils';
+
+function sortRoastersByName<T extends { name: string }>(items: T[]) {
+  return [...items].sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
+}
 
 export function RoastersPageClient({
   initialRoasters,
@@ -45,7 +50,7 @@ export function RoastersPageClient({
   });
 
   useEffect(() => {
-    setRoasters(initialRoasters);
+    setRoasters(sortRoastersByName(initialRoasters));
   }, [initialRoasters]);
 
   async function submitReport(reason: string, details: string) {
@@ -96,15 +101,17 @@ export function RoastersPageClient({
         return;
       }
 
-      setRoasters((current) => [
-        {
-          ...payload.roaster,
-          communityFavorites: [],
-          postCount: 0,
-          pinnedByViewer: false,
-        },
-        ...current,
-      ]);
+      setRoasters((current) =>
+        sortRoastersByName([
+          {
+            ...payload.roaster,
+            communityFavorites: [],
+            postCount: 0,
+            pinnedByViewer: false,
+          },
+          ...current,
+        ]),
+      );
       setShowAddModal(false);
       setForm({
         name: '',
@@ -154,10 +161,11 @@ export function RoastersPageClient({
           {roasters.map((roaster, index) => (
             <motion.article
               key={roaster.id}
+              id={slugify(roaster.name)}
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.04 }}
-              className="relative overflow-hidden rounded-[2rem] border border-stone-200 bg-white/85 p-6 shadow-sm backdrop-blur-sm"
+              className="relative scroll-mt-28 overflow-hidden rounded-[2rem] border border-stone-200 bg-white/85 p-6 shadow-sm backdrop-blur-sm"
             >
               <div className="absolute right-5 top-5 flex items-center gap-2 rounded-full bg-stone-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] text-stone-500">
                 <Stamp className="h-3.5 w-3.5" />

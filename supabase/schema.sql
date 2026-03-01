@@ -137,10 +137,10 @@ security definer
 set search_path = public
 as $$
 declare
-  current_user uuid := auth.uid();
+  current_user_id uuid := auth.uid();
   exists_like boolean;
 begin
-  if current_user is null then
+  if current_user_id is null then
     raise exception 'Authentication required';
   end if;
 
@@ -148,33 +148,33 @@ begin
     select 1
     from public.post_likes
     where post_id = p_post_id
-      and user_id = current_user
+      and user_id = current_user_id
   ) into exists_like;
 
   if exists_like then
     delete from public.post_likes
     where post_id = p_post_id
-      and user_id = current_user;
+      and user_id = current_user_id;
 
     update public.posts
-    set likes_count = greatest(likes_count - 1, 0)
+    set likes_count = greatest(public.posts.likes_count - 1, 0)
     where id = p_post_id;
 
     return query
-    select false, likes_count
+    select false, public.posts.likes_count
     from public.posts
     where id = p_post_id;
   else
     insert into public.post_likes (post_id, user_id)
-    values (p_post_id, current_user)
+    values (p_post_id, current_user_id)
     on conflict do nothing;
 
     update public.posts
-    set likes_count = likes_count + 1
+    set likes_count = public.posts.likes_count + 1
     where id = p_post_id;
 
     return query
-    select true, likes_count
+    select true, public.posts.likes_count
     from public.posts
     where id = p_post_id;
   end if;
@@ -199,15 +199,15 @@ security definer
 set search_path = public
 as $$
 declare
-  current_user uuid := auth.uid();
+  current_user_id uuid := auth.uid();
   current_count integer;
 begin
-  if current_user is null then
+  if current_user_id is null then
     raise exception 'Authentication required';
   end if;
 
   insert into public.ai_usage_daily (user_id, usage_date, request_count)
-  values (current_user, current_date, 1)
+  values (current_user_id, current_date, 1)
   on conflict (user_id, usage_date)
   do update set request_count = public.ai_usage_daily.request_count + 1
   returning public.ai_usage_daily.request_count into current_count;
@@ -215,7 +215,7 @@ begin
   if current_count > p_limit then
     update public.ai_usage_daily
     set request_count = request_count - 1
-    where user_id = current_user
+    where user_id = current_user_id
       and usage_date = current_date;
 
     return query select false, p_limit, 0;
@@ -388,4 +388,3 @@ grant execute on function public.toggle_post_like(uuid) to authenticated;
 grant execute on function public.increment_post_reports(uuid) to authenticated;
 grant execute on function public.consume_ai_quota(integer) to authenticated;
 grant execute on function public.consume_rate_limit(text, text, integer, integer) to authenticated;
-

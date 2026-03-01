@@ -15,6 +15,16 @@ export function ProfilePageClient({
   initialProfile: PublicProfile;
   viewer: Viewer;
 }) {
+  async function readPayload(response: Response) {
+    const contentType = response.headers.get('content-type') ?? '';
+    if (contentType.includes('application/json')) {
+      return response.json();
+    }
+
+    const text = await response.text();
+    return { error: text.startsWith('<!DOCTYPE') ? 'The server returned an unexpected HTML error page.' : text };
+  }
+
   const [profile, setProfile] = useState(initialProfile);
   const [posts, setPosts] = useState<FeedPost[]>(initialProfile.recentPosts);
   const [editing, setEditing] = useState(false);
@@ -48,12 +58,12 @@ export function ProfilePageClient({
       method: 'POST',
     });
 
+    const payload = await readPayload(response);
+
     if (!response.ok) {
-      window.alert('Unable to update that like.');
+      window.alert(payload.error ?? 'Unable to update that like.');
       return;
     }
-
-    const payload = await response.json();
     setPosts((current) =>
       current.map((post) =>
         post.id === postId ? { ...post, likedByViewer: payload.liked, likesCount: payload.likes } : post,
@@ -132,6 +142,18 @@ export function ProfilePageClient({
               <p className="mt-3 max-w-2xl text-sm font-medium leading-7 text-stone-600 sm:text-base">
                 {editing ? form.bio || 'No bio yet.' : profile.bio || 'No bio yet.'}
               </p>
+              {profile.featuredBadges.length > 0 ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {profile.featuredBadges.map((badge) => (
+                    <div
+                      key={badge.id}
+                      className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-stone-700"
+                    >
+                      {badge.icon} {badge.name}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3 lg:w-[360px]">

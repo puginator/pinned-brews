@@ -14,6 +14,16 @@ export function HomePageClient({
   initialPosts: FeedPost[];
   viewer: Viewer;
 }) {
+  async function readPayload(response: Response) {
+    const contentType = response.headers.get('content-type') ?? '';
+    if (contentType.includes('application/json')) {
+      return response.json();
+    }
+
+    const text = await response.text();
+    return { error: text.startsWith('<!DOCTYPE') ? 'The server returned an unexpected HTML error page.' : text };
+  }
+
   const [posts, setPosts] = useState(initialPosts);
   const [searchQuery, setSearchQuery] = useState('');
   const [roasterFilter, setRoasterFilter] = useState('all');
@@ -69,12 +79,12 @@ export function HomePageClient({
       method: 'POST',
     });
 
+    const payload = await readPayload(response);
+
     if (!response.ok) {
-      window.alert('Unable to update that like right now.');
+      window.alert(payload.error ?? 'Unable to update that like right now.');
       return;
     }
-
-    const payload = await response.json();
 
     setPosts((current) =>
       current.map((post) =>
@@ -222,4 +232,3 @@ export function HomePageClient({
     </>
   );
 }
-

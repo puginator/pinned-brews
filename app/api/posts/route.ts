@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthContext } from '@/lib/server/auth';
-import { getFeedPosts } from '@/lib/server/posts';
+import { getUserBadges } from '@/lib/domain/stats';
+import { getFeedPosts, getStatsInputsForUserIds } from '@/lib/server/posts';
 import { enforceWriteRateLimit } from '@/lib/server/rate-limit';
 import { postSchema } from '@/lib/validation';
 
@@ -26,6 +27,9 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid brew payload.', issues: parsed.error.flatten() }, { status: 400 });
   }
+
+  const previousStatsInputs = await getStatsInputsForUserIds(supabase, [user.id]);
+  const previousBadgeIds = new Set(getUserBadges(user.id, previousStatsInputs).map((badge) => badge.id));
 
   const { data, error } = await supabase
     .from('posts')
@@ -54,9 +58,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unable to publish this brew.' }, { status: 500 });
   }
 
+  const updatedStatsInputs = await getStatsInputsForUserIds(supabase, [user.id]);
+  const updatedBadges = getUserBadges(user.id, updatedStatsInputs);
+  const newlyUnlockedBadges = updatedBadges.filter((badge) => !previousBadgeIds.has(badge.id));
   const feed = await getFeedPosts(supabase, user.id);
   const post = feed.find((entry) => entry.id === data.id);
 
-  return NextResponse.json({ post }, { status: 201 });
+  return NextResponse.json({ post, newlyUnlockedBadges }, { status: 201 });
 }
-

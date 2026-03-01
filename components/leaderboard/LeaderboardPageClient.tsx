@@ -57,6 +57,18 @@ export function LeaderboardPageClient({ topUsers, topBrews }: LeaderboardPageCli
                       </span>
                     ) : null}
                   </div>
+                  {user.profile.featuredBadges.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {user.profile.featuredBadges.map((badge) => (
+                        <span
+                          key={badge.id}
+                          className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-stone-700"
+                        >
+                          {badge.icon} {badge.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="text-right">
                   <div className="text-xl font-black text-pink-500">{user.stats.totalXp}</div>

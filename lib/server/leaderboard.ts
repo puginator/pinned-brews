@@ -1,7 +1,7 @@
 import 'server-only';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getUserStats } from '@/lib/domain/stats';
+import { getFeaturedBadges, getUserStats } from '@/lib/domain/stats';
 import type { Database } from '@/lib/server/database.types';
 import type { LeaderboardEntry } from '@/lib/domain/types';
 
@@ -43,6 +43,7 @@ export async function getLeaderboard(supabase: SupabaseClient<Database>) {
         handle: profile.handle,
         displayName: profile.display_name,
         avatar: profile.avatar,
+        featuredBadges: getFeaturedBadges(profile.id, posts, 2),
       },
       stats: getUserStats(profile.id, posts),
     }))

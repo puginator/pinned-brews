@@ -3,10 +3,10 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, PlusCircle, Send, Sparkles, Star } from 'lucide-react';
-import { motion } from 'motion/react';
+import { ArrowLeft, Award, PlusCircle, Send, Sparkles, Star } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { BREW_METHODS, FLAVOR_PROFILES, POST_COLORS } from '@/lib/domain/constants';
-import type { RoasterRecord, Viewer } from '@/lib/domain/types';
+import type { Badge, RoasterRecord, Viewer } from '@/lib/domain/types';
 
 export function NewBrewPageClient({
   viewer,
@@ -52,9 +52,14 @@ export function NewBrewPageClient({
   const [rating, setRating] = useState(4.5);
   const [color, setColor] = useState<(typeof POST_COLORS)[number]>('bg-rose-100');
   const [aiAdvice, setAiAdvice] = useState('');
+  const [newlyUnlockedBadges, setNewlyUnlockedBadges] = useState<Badge[]>([]);
 
   const ratio =
     coffeeWeight && waterWeight ? `1:${(Number(waterWeight) / Number(coffeeWeight)).toFixed(1)}` : '---';
+
+  function sleep(milliseconds: number) {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+  }
 
   if (!viewer?.profile) {
     return (
@@ -180,6 +185,11 @@ export function NewBrewPageClient({
       if (!response.ok) {
         window.alert(payload.error ?? 'Unable to publish this brew.');
         return;
+      }
+
+      if ((payload.newlyUnlockedBadges?.length ?? 0) > 0) {
+        setNewlyUnlockedBadges(payload.newlyUnlockedBadges);
+        await sleep(1800);
       }
 
       router.push('/');
@@ -442,6 +452,36 @@ export function NewBrewPageClient({
           </button>
         </form>
       </motion.section>
+
+      <AnimatePresence>
+        {newlyUnlockedBadges.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: 0.96 }}
+            className="fixed bottom-6 right-6 z-[120] w-[min(92vw,28rem)] overflow-hidden rounded-[2rem] border border-amber-200 bg-[linear-gradient(135deg,#111827,#1f2937_55%,#334155)] p-5 text-white shadow-[0_30px_120px_rgba(15,23,42,0.28)]"
+          >
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] text-white/70">
+              <Award className="h-3.5 w-3.5" />
+              Achievement Unlocked
+            </div>
+            <h2 className="mt-3 font-nunito text-3xl font-extrabold">Fresh badge energy.</h2>
+            <p className="mt-2 text-sm font-medium leading-6 text-white/70">
+              Your latest brew pushed your profile forward. Sending you back to the feed in a second.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {newlyUnlockedBadges.map((badge) => (
+                <div
+                  key={badge.id}
+                  className="rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-black uppercase tracking-[0.15em] text-white"
+                >
+                  {badge.icon} {badge.name}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </main>
   );
 }
