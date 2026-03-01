@@ -1,300 +1,183 @@
 'use client';
 
 import Link from 'next/link';
-import { useAppStore, getUserBadges, BADGES, getUserStats } from '@/lib/store';
-import { Coffee, LogIn, LogOut, PlusCircle, Map, X, Award, Sparkles, Flame, Trophy } from 'lucide-react';
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import { useState, useTransition } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Award, Coffee, LogIn, LogOut, Mail, Map, PencilLine, PlusCircle, Shield, Trophy } from 'lucide-react';
+import { APP_NAME } from '@/lib/domain/constants';
+import { useAuthSession } from '@/components/providers/AuthSessionProvider';
 
 export function Navbar() {
-  const { currentUser, posts, login, logout } = useAppStore();
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [loginName, setLoginName] = useState('');
+  const { viewer, signInWithMagicLink, signOut } = useAuthSession();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [email, setEmail] = useState('');
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loginName.trim()) {
-      login(loginName.trim());
-      setIsLoginOpen(false);
-      setLoginName('');
-    }
-  };
+  async function handleMagicLink(event: React.FormEvent) {
+    event.preventDefault();
 
-  const userBadges = currentUser ? getUserBadges(currentUser.id, posts) : [];
-  const userStats = currentUser ? getUserStats(currentUser.id, posts) : null;
-  const userPosts = currentUser ? posts.filter(p => p.userId === currentUser.id) : [];
-  const uniqueRoasters = new Set(userPosts.map(p => p.roasterId)).size;
+    startTransition(async () => {
+      const result = await signInWithMagicLink(email);
+      if (result.error) {
+        setAuthNotice(result.error);
+        return;
+      }
+
+      setAuthNotice('Magic link sent. Check your inbox.');
+      setEmail('');
+    });
+  }
 
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b-4 border-pink-200 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="bg-pink-100 p-2 rounded-2xl group-hover:rotate-12 transition-transform duration-300">
-              <Coffee className="w-6 h-6 text-pink-500" />
+      <nav className="sticky top-0 z-50 border-b border-white/70 bg-amber-50/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
+          <Link href="/" className="group flex items-center gap-3">
+            <div className="rounded-[1.35rem] bg-stone-950 p-3 text-white shadow-lg transition duration-300 group-hover:-translate-y-0.5 group-hover:rotate-3">
+              <Coffee className="h-5 w-5" />
             </div>
-            <span className="font-nunito font-bold text-xl text-stone-700 tracking-tight">
-              Kawaii Brews
-            </span>
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.28em] text-stone-400">Pinned coffee social</div>
+              <div className="font-nunito text-2xl font-extrabold tracking-tight text-stone-900">{APP_NAME}</div>
+            </div>
           </Link>
 
-          <div className="flex items-center gap-4">
-            <Link 
-              href="/roasters" 
-              className="flex items-center gap-1.5 text-stone-600 hover:text-pink-500 font-medium transition-colors"
-            >
-              <Map className="w-4 h-4" />
-              <span className="hidden sm:inline">Roasters</span>
+          <div className="hidden items-center gap-5 md:flex">
+            <Link href="/roasters" className="text-sm font-bold text-stone-600 transition hover:text-stone-900">
+              Roasters
             </Link>
-            
-            <Link 
-              href="/leaderboard" 
-              className="flex items-center gap-1.5 text-stone-600 hover:text-amber-500 font-medium transition-colors"
-            >
-              <Trophy className="w-4 h-4" />
-              <span className="hidden sm:inline">Leaderboard</span>
+            <Link href="/leaderboard" className="text-sm font-bold text-stone-600 transition hover:text-stone-900">
+              Leaderboard
             </Link>
+            <Link href="/achievements" className="text-sm font-bold text-stone-600 transition hover:text-stone-900">
+              Achievements
+            </Link>
+            {viewer?.profile ? (
+              <Link href="/new" className="inline-flex items-center gap-2 rounded-full bg-stone-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-stone-800">
+                <PlusCircle className="h-4 w-4" />
+                Log Brew
+              </Link>
+            ) : null}
+          </div>
 
-            {currentUser ? (
-              <div className="flex items-center gap-3">
-                <Link 
-                  href="/new" 
-                  className="flex items-center gap-1.5 bg-pink-400 hover:bg-pink-500 text-white px-4 py-2 rounded-full font-bold shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5"
+          <div className="flex items-center gap-3">
+            {viewer?.profile ? (
+              <>
+                <Link
+                  href={`/u/${viewer.profile.handle}`}
+                  className="hidden items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-bold text-stone-700 transition hover:border-stone-300 sm:inline-flex"
                 >
-                  <PlusCircle className="w-4 h-4" />
-                  <span className="hidden sm:inline">Log Brew</span>
+                  <span className="text-lg">{viewer.profile.avatar}</span>
+                  @{viewer.profile.handle}
                 </Link>
-                <button 
-                  onClick={() => setIsProfileOpen(true)}
-                  className="flex items-center gap-2 bg-stone-100 hover:bg-pink-50 px-3 py-1.5 rounded-full border-2 border-stone-200 hover:border-pink-300 transition-all group"
+                {viewer.profile.role === 'admin' ? (
+                  <Link href="/admin" className="rounded-full bg-amber-100 px-3 py-2 text-xs font-black uppercase tracking-[0.22em] text-amber-900">
+                    <Shield className="inline h-3.5 w-3.5" /> Admin
+                  </Link>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => void signOut()}
+                  className="inline-flex items-center gap-2 rounded-full bg-stone-100 px-4 py-2 text-sm font-bold text-stone-600 transition hover:bg-stone-200"
                 >
-                  <span className="text-lg group-hover:scale-110 transition-transform">{currentUser.avatar}</span>
-                  <span className="font-bold text-stone-700 text-sm">{currentUser.name}</span>
-                  {userStats && userStats.streak > 0 && (
-                    <span className="flex items-center justify-center bg-orange-100 text-orange-600 text-xs font-bold px-1.5 py-0.5 rounded-full ml-1">
-                      {userStats.streak} <Flame className="w-3 h-3 ml-0.5" />
-                    </span>
-                  )}
-                  {userBadges.length > 0 && (
-                    <span className="flex items-center justify-center bg-amber-100 text-amber-600 text-xs font-bold px-1.5 py-0.5 rounded-full ml-1">
-                      {userBadges.length} <Award className="w-3 h-3 ml-0.5" />
-                    </span>
-                  )}
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sign out</span>
                 </button>
-              </div>
+              </>
+            ) : viewer ? (
+              <Link href="/onboarding" className="inline-flex items-center gap-2 rounded-full bg-stone-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-stone-800">
+                <PencilLine className="h-4 w-4" />
+                Finish setup
+              </Link>
             ) : (
-              <button 
-                onClick={() => setIsLoginOpen(true)}
-                className="flex items-center gap-1.5 bg-teal-400 hover:bg-teal-500 text-white px-4 py-2 rounded-full font-bold shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5"
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthNotice(null);
+                  setShowAuthModal(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-full bg-stone-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-stone-800"
               >
-                <LogIn className="w-4 h-4" />
-                <span>Sign In</span>
+                <LogIn className="h-4 w-4" />
+                Sign in
               </button>
             )}
           </div>
         </div>
       </nav>
 
-      {/* Profile & Achievements Modal */}
       <AnimatePresence>
-        {isProfileOpen && currentUser && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-stone-900/40 backdrop-blur-sm p-4">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-[#fdfbf7] rounded-[2rem] p-6 sm:p-8 max-w-md w-full shadow-2xl border-4 border-pink-200 relative overflow-hidden"
+        {showAuthModal ? (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-stone-950/45 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, y: 14, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 14, scale: 0.96 }}
+              className="w-full max-w-md overflow-hidden rounded-[2rem] border border-stone-200 bg-white p-6 shadow-[0_30px_120px_rgba(15,23,42,0.18)]"
             >
-              <button 
-                onClick={() => setIsProfileOpen(false)}
-                className="absolute top-4 right-4 p-2 bg-stone-100 hover:bg-stone-200 text-stone-500 rounded-full transition-colors z-20"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="relative z-10 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
-                <div className="flex flex-col items-center text-center mb-6">
-                  <div className="text-6xl mb-2 bg-pink-100 w-24 h-24 rounded-full flex items-center justify-center border-4 border-white shadow-sm">
-                    {currentUser.avatar}
-                  </div>
-                  <h2 className="font-nunito text-3xl font-extrabold text-stone-800">
-                    {currentUser.name}
-                  </h2>
-                  {userStats && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xl">{userStats.currentRank.icon}</span>
-                      <p className="text-stone-600 font-bold">{userStats.currentRank.name}</p>
-                    </div>
-                  )}
+              <div className="rounded-[1.75rem] bg-[linear-gradient(135deg,#111827,#334155)] px-5 py-5 text-white">
+                <div className="inline-flex rounded-full bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] text-white/70">
+                  Join Pinned Brews
                 </div>
-
-                {userStats && (
-                  <div className="mb-6 bg-white p-4 rounded-2xl border-2 border-stone-100 shadow-sm">
-                    <div className="flex justify-between items-end mb-2">
-                      <div>
-                        <div className="text-xs font-bold text-stone-500 uppercase tracking-wider">Experience</div>
-                        <div className="text-xl font-black text-pink-500">{userStats.totalXp} XP</div>
-                      </div>
-                      {userStats.nextRank && (
-                        <div className="text-right">
-                          <div className="text-xs font-bold text-stone-500 uppercase tracking-wider">Next Rank</div>
-                          <div className="text-sm font-bold text-stone-700">{userStats.xpToNextRank} XP to go</div>
-                        </div>
-                      )}
-                    </div>
-                    {userStats.nextRank && (
-                      <div className="w-full bg-stone-100 rounded-full h-2.5 overflow-hidden">
-                        <div 
-                          className="bg-pink-400 h-2.5 rounded-full transition-all duration-1000" 
-                          style={{ width: `${userStats.progressToNextRank}%` }}
-                        ></div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                  <div className="bg-white p-3 rounded-2xl border-2 border-stone-100 text-center shadow-sm">
-                    <div className="text-2xl font-black text-pink-500 mb-0.5">{userPosts.length}</div>
-                    <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Brews</div>
-                  </div>
-                  <div className="bg-white p-3 rounded-2xl border-2 border-stone-100 text-center shadow-sm">
-                    <div className="text-2xl font-black text-teal-500 mb-0.5">{uniqueRoasters}</div>
-                    <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Roasters</div>
-                  </div>
-                  <div className="bg-white p-3 rounded-2xl border-2 border-stone-100 text-center shadow-sm">
-                    <div className="text-2xl font-black text-orange-500 mb-0.5 flex items-center justify-center gap-1">
-                      {userStats?.streak || 0} <Flame className="w-4 h-4" />
-                    </div>
-                    <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Day Streak</div>
-                  </div>
-                </div>
-
-                {userStats && userStats.radarData.some(d => d.A > 0) && (
-                  <div className="mb-6 bg-white p-4 rounded-2xl border-2 border-stone-100 shadow-sm">
-                    <h3 className="font-nunito text-lg font-bold text-stone-800 mb-2 text-center">Flavor Profile</h3>
-                    <div className="h-[200px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart cx="50%" cy="50%" outerRadius="70%" data={userStats.radarData}>
-                          <PolarGrid stroke="#e5e7eb" />
-                          <PolarAngleAxis dataKey="subject" tick={{ fill: '#78716c', fontSize: 10, fontWeight: 'bold' }} />
-                          <PolarRadiusAxis angle={30} domain={[0, 'dataMax']} tick={false} axisLine={false} />
-                          <Radar name="Flavor" dataKey="A" stroke="#f472b6" fill="#fbcfe8" fillOpacity={0.6} />
-                        </RadarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                )}
-
-                <div className="mb-6">
-                  <h3 className="font-nunito text-xl font-bold text-stone-800 mb-4 flex items-center gap-2">
-                    <Award className="w-5 h-5 text-amber-500" />
-                    Achievements
-                  </h3>
-                  <div className="grid grid-cols-1 gap-3">
-                    {BADGES.map(badge => {
-                      const isEarned = userBadges.some(b => b.id === badge.id);
-                      return (
-                        <div 
-                          key={badge.id} 
-                          className={`flex items-center gap-4 p-3 rounded-2xl border-2 transition-all ${
-                            isEarned 
-                              ? 'bg-white border-amber-200 shadow-sm' 
-                              : 'bg-stone-50 border-stone-100 opacity-60 grayscale'
-                          }`}
-                        >
-                          <div className={`text-3xl w-12 h-12 flex items-center justify-center rounded-xl ${isEarned ? 'bg-amber-100' : 'bg-stone-200'}`}>
-                            {badge.icon}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className={`font-bold text-sm ${isEarned ? 'text-stone-800' : 'text-stone-500'}`}>
-                              {badge.name}
-                            </h4>
-                            <p className="text-xs text-stone-500 font-medium">{badge.description}</p>
-                          </div>
-                          {isEarned && (
-                            <div className="text-amber-500">
-                              <Sparkles className="w-5 h-5" />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => {
-                    logout();
-                    setIsProfileOpen(false);
-                  }}
-                  className="w-full py-3 rounded-2xl font-bold text-red-500 bg-red-50 hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign Out
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Cute Login Modal */}
-      <AnimatePresence>
-        {isLoginOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-stone-900/40 backdrop-blur-sm p-4">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border-4 border-pink-200 relative overflow-hidden"
-            >
-              {/* Decorative elements */}
-              <div className="absolute -top-4 -right-4 text-6xl opacity-20 rotate-12">🌸</div>
-              <div className="absolute -bottom-4 -left-4 text-6xl opacity-20 -rotate-12">☕</div>
-              
-              <div className="relative z-10">
-                <h2 className="font-nunito text-2xl font-bold text-center text-stone-800 mb-2">
-                  Welcome to Kawaii Brews!
-                </h2>
-                <p className="text-center text-stone-500 mb-6 text-sm">
-                  Enter a cute nickname to start logging your coffee journey.
+                <h2 className="mt-3 font-nunito text-3xl font-extrabold">Build your brew profile</h2>
+                <p className="mt-2 text-sm font-medium leading-6 text-white/70">
+                  Use a magic link to publish recipes, like brews, report issues, and keep your coffee identity portable.
                 </p>
-                
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div>
+              </div>
+
+              <form onSubmit={handleMagicLink} className="mt-5 space-y-3">
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-stone-700">Email</span>
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
                     <input
-                      type="text"
-                      value={loginName}
-                      onChange={(e) => setLoginName(e.target.value)}
-                      placeholder="e.g. Matcha Mochi"
-                      className="w-full px-4 py-3 rounded-2xl border-2 border-stone-200 focus:border-pink-400 focus:ring-4 focus:ring-pink-100 outline-none transition-all font-medium text-stone-700"
-                      autoFocus
                       required
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-11 py-3 text-sm font-medium text-stone-700 outline-none transition focus:border-sky-300 focus:bg-white"
+                      placeholder="you@example.com"
                     />
                   </div>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setIsLoginOpen(false)}
-                      className="flex-1 py-3 rounded-2xl font-bold text-stone-500 bg-stone-100 hover:bg-stone-200 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex-1 py-3 rounded-2xl font-bold text-white bg-pink-400 hover:bg-pink-500 shadow-sm hover:shadow-md transition-all"
-                    >
-                      Let&apos;s Go! ✨
-                    </button>
-                  </div>
-                </form>
+                </label>
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <Mail className="h-4 w-4" />
+                  Send magic link
+                </button>
+              </form>
+
+              {authNotice ? <p className="mt-4 text-sm font-medium text-stone-500">{authNotice}</p> : null}
+
+              <div className="mt-5 flex gap-3">
+                <Link href="/roasters" className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-stone-100 px-4 py-3 text-sm font-bold text-stone-600 transition hover:bg-stone-200">
+                  <Map className="h-4 w-4" />
+                  Explore roasters
+                </Link>
+                <Link href="/leaderboard" className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-stone-100 px-4 py-3 text-sm font-bold text-stone-600 transition hover:bg-stone-200">
+                  <Trophy className="h-4 w-4" />
+                  See leaders
+                </Link>
+                <Link href="/achievements" className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-stone-100 px-4 py-3 text-sm font-bold text-stone-600 transition hover:bg-stone-200">
+                  <Award className="h-4 w-4" />
+                  Badges
+                </Link>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAuthModal(false)}
+                className="mt-4 inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-bold text-stone-500 transition hover:bg-stone-100"
+              >
+                Close
+              </button>
             </motion.div>
           </div>
-        )}
+        ) : null}
       </AnimatePresence>
     </>
   );

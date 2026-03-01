@@ -1,183 +1,183 @@
 'use client';
 
-import { Post } from '@/lib/store';
-import { motion } from 'motion/react';
-import { Heart, Coffee, Beaker, MapPin, Sparkles, ExternalLink, Star } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import Link from 'next/link';
+import { motion } from 'motion/react';
+import { Beaker, ExternalLink, Flag, Heart, MapPin, Sparkles, Star } from 'lucide-react';
+import type { FeedPost } from '@/lib/domain/types';
 
-export function PostItNote({ post, onLike }: { post: Post; onLike: (id: string) => void }) {
+export function PostItNote({
+  post,
+  onLike,
+  onReport,
+}: {
+  post: FeedPost;
+  onLike: (id: string) => Promise<void> | void;
+  onReport: (id: string) => void;
+}) {
   const [isFlipped, setIsFlipped] = useState(false);
-  
-  // Deterministic random rotation based on post ID
-  const randomRotation = (post.id.charCodeAt(post.id.length - 1) % 7) - 3; // -3 to 3 degrees
+  const rotation = (post.id.charCodeAt(post.id.length - 1) % 7) - 3;
 
   return (
-    <motion.div
+    <motion.article
       layout
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      whileHover={{ scale: 1.02, rotate: 0, zIndex: 10 }}
-      style={{ rotate: randomRotation, perspective: 1000 }}
-      className="relative w-full cursor-pointer"
-      onClick={() => setIsFlipped(!isFlipped)}
+      whileHover={{ y: -4, rotate: 0 }}
+      style={{ rotate: rotation, perspective: 1200 }}
+      className="relative cursor-pointer"
+      onClick={() => setIsFlipped((current) => !current)}
     >
       <motion.div
-        className="relative w-full h-full grid"
         animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.6, type: 'spring', stiffness: 260, damping: 20 }}
-        style={{ transformStyle: 'preserve-3d', gridTemplateAreas: "'stack'" }}
+        transition={{ duration: 0.6, type: 'spring', stiffness: 220, damping: 20 }}
+        style={{ transformStyle: 'preserve-3d', display: 'grid' }}
+        className="relative min-h-[320px]"
       >
-        {/* Front Side */}
-        <div 
-          className={`[grid-area:stack] ${post.color} rounded-2xl p-5 shadow-sm border-2 border-black/5 flex flex-col`}
+        <div
+          className={`[grid-area:1/1] ${post.color} relative flex min-h-[320px] flex-col rounded-[2rem] border border-black/5 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)]`}
           style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
         >
-          {/* Tape graphic */}
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-6 bg-white/40 backdrop-blur-sm rotate-[-2deg] shadow-sm rounded-sm z-10"></div>
-          
-          <div className="flex flex-col h-full min-h-[200px]">
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{post.userAvatar}</span>
-                <div className="flex flex-col">
-                  <span className="font-bold text-stone-800 text-sm">{post.userName}</span>
-                  <span className="text-xs text-stone-500 font-medium">
-                    {formatDistanceToNow(post.createdAt, { addSuffix: true })}
-                  </span>
-                </div>
-              </div>
-            </div>
+          <div className="absolute -top-3 left-1/2 h-7 w-20 -translate-x-1/2 rotate-[-3deg] rounded-sm bg-white/60 shadow-sm" />
 
-            <div className="flex-1">
-              <h3 className="font-nunito font-extrabold text-xl text-stone-800 leading-tight mb-1 flex items-center gap-2">
-                {post.coffeeName}
-                {post.country && (
-                  <span className="text-xs font-bold bg-stone-200 text-stone-600 px-2 py-0.5 rounded-full whitespace-nowrap">
-                    {post.country}
-                  </span>
-                )}
-                {post.coffeeUrl && (
-                  <a 
-                    href={post.coffeeUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-pink-500 hover:text-pink-600 transition-colors"
-                    title="View Coffee"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                )}
-              </h3>
-              <div className="flex items-center gap-1 text-stone-600 text-sm font-medium mb-3">
-                <MapPin className="w-3 h-3" />
-                <Link 
-                  href={`/roasters#${post.roasterId}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="hover:text-pink-500 hover:underline transition-colors"
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">{post.author.avatar}</span>
+              <div>
+                <Link
+                  href={`/u/${post.author.handle}`}
+                  onClick={(event) => event.stopPropagation()}
+                  className="text-sm font-bold text-stone-800 transition hover:text-stone-950"
                 >
-                  {post.roasterName}
+                  {post.author.displayName}
                 </Link>
+                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-stone-500">@{post.author.handle}</div>
               </div>
+            </div>
+            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-stone-500">
+              {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+            </div>
+          </div>
 
-              <div className="flex items-center gap-0.5 mb-3">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <div key={star} className="relative w-4 h-4">
-                    <Star className="w-4 h-4 text-stone-300 absolute inset-0" />
-                    <div 
-                      className="absolute inset-0 overflow-hidden" 
-                      style={{ width: post.rating >= star ? '100%' : post.rating >= star - 0.5 ? '50%' : '0%' }}
-                    >
-                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    </div>
-                  </div>
-                ))}
-                <span className="text-xs font-bold text-stone-500 ml-1">{post.rating}</span>
-              </div>
-              
-              <p className="text-stone-700 text-sm font-medium leading-relaxed italic">
-                &quot;{post.tasteNotes}&quot;
-              </p>
+          <div className="mt-4 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-nunito text-2xl font-extrabold leading-tight text-stone-900">{post.coffeeName}</h3>
+              {post.country ? <span className="rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-stone-600">{post.country}</span> : null}
+              {post.coffeeUrl ? (
+                <a
+                  href={post.coffeeUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(event) => event.stopPropagation()}
+                  className="text-stone-500 transition hover:text-stone-900"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              ) : null}
             </div>
 
-            <div className="mt-4 flex items-center justify-between border-t border-black/10 pt-3">
-              <div className="flex items-center gap-1.5 text-stone-600 bg-white/50 px-2 py-1 rounded-lg text-xs font-bold">
-                <Coffee className="w-3 h-3" />
-                {post.brewMethod}
-              </div>
-              
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onLike(post.id);
+            <Link
+              href="/roasters"
+              onClick={(event) => event.stopPropagation()}
+              className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-stone-600 transition hover:text-stone-900"
+            >
+              <MapPin className="h-4 w-4" />
+              {post.roaster.name}
+            </Link>
+
+            <div className="mt-3 flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <div key={star} className="relative h-4 w-4">
+                  <Star className="absolute inset-0 h-4 w-4 text-stone-300" />
+                  <div
+                    className="absolute inset-0 overflow-hidden"
+                    style={{ width: post.rating >= star ? '100%' : post.rating >= star - 0.5 ? '50%' : '0%' }}
+                  >
+                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  </div>
+                </div>
+              ))}
+              <span className="ml-1 text-xs font-bold text-stone-500">{post.rating.toFixed(1)}</span>
+            </div>
+
+            <p className="mt-4 text-sm font-medium leading-7 text-stone-700">&quot;{post.tasteNotes}&quot;</p>
+          </div>
+
+          <div className="mt-5 flex items-center justify-between border-t border-black/10 pt-4">
+            <div className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-black uppercase tracking-[0.2em] text-stone-600">
+              {post.brewMethod}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void onReport(post.id);
                 }}
-                className="flex items-center gap-1.5 text-pink-500 hover:bg-pink-100/50 px-2 py-1 rounded-lg transition-colors group"
+                className="rounded-full bg-white/70 p-2 text-stone-500 transition hover:text-rose-600"
               >
-                <Heart className="w-4 h-4 group-hover:fill-pink-500 transition-all" />
-                <span className="font-bold text-sm">{post.likes}</span>
+                <Flag className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void onLike(post.id);
+                }}
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-bold transition ${
+                  post.likedByViewer ? 'bg-rose-500 text-white' : 'bg-white/70 text-rose-600'
+                }`}
+              >
+                <Heart className={`h-4 w-4 ${post.likedByViewer ? 'fill-white text-white' : ''}`} />
+                {post.likesCount}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Back Side (Recipe Details) */}
-        <div 
-          className={`[grid-area:stack] ${post.color} rounded-2xl p-5 shadow-sm border-2 border-black/5 flex flex-col`}
+        <div
+          className={`[grid-area:1/1] ${post.color} relative flex min-h-[320px] flex-col rounded-[2rem] border border-black/5 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)]`}
           style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
-          {/* Tape graphic */}
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-6 bg-white/40 backdrop-blur-sm rotate-[-2deg] shadow-sm rounded-sm z-10"></div>
+          <div className="absolute -top-3 left-1/2 h-7 w-20 -translate-x-1/2 rotate-[-3deg] rounded-sm bg-white/60 shadow-sm" />
 
-          <div className="flex flex-col h-full min-h-[200px]">
-            <div className="flex items-center gap-2 mb-4 border-b border-black/10 pb-2">
-              <Beaker className="w-5 h-5 text-stone-700" />
-              <h3 className="font-nunito font-bold text-lg text-stone-800">The Recipe</h3>
-            </div>
-            
-            <div className="space-y-2 flex-1">
-              <div className="flex justify-between items-center bg-white/40 p-2 rounded-xl">
-                <span className="text-stone-600 font-medium text-xs">Method</span>
-                <span className="font-bold text-stone-800 text-sm">{post.brewMethod}</span>
-              </div>
-              <div className="flex justify-between items-center bg-white/40 p-2 rounded-xl">
-                <span className="text-stone-600 font-medium text-xs">Dose / Yield</span>
-                <span className="font-bold text-stone-800 text-sm">{post.coffeeWeight}g / {post.waterWeight}g</span>
-              </div>
-              <div className="flex justify-between items-center bg-white/40 p-2 rounded-xl">
-                <span className="text-stone-600 font-medium text-xs">Ratio</span>
-                <span className="font-bold text-stone-800 text-sm">{post.ratio}</span>
-              </div>
-              {(post.varietal || post.process) && (
-                <div className="flex justify-between items-center bg-white/40 p-2 rounded-xl">
-                  <span className="text-stone-600 font-medium text-xs">Bean Info</span>
-                  <span className="font-bold text-stone-800 text-sm text-right">
-                    {[post.varietal, post.process].filter(Boolean).join(' • ')}
-                  </span>
-                </div>
-              )}
-            </div>
+          <div className="mb-4 flex items-center gap-2 border-b border-black/10 pb-3">
+            <Beaker className="h-5 w-5 text-stone-700" />
+            <h3 className="font-nunito text-xl font-extrabold text-stone-900">Recipe card</h3>
+          </div>
 
-            {post.aiAdvice && (
-              <div className="mt-4 bg-white/60 p-3 rounded-xl border border-white/80 shadow-sm relative overflow-hidden">
-                <div className="absolute -right-2 -top-2 text-3xl opacity-20">✨</div>
-                <div className="flex items-start gap-2 relative z-10">
-                  <Sparkles className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                  <p className="text-xs text-stone-700 font-medium leading-relaxed">
-                    <span className="font-bold text-stone-800 block mb-0.5">Brew Coach:</span>
-                    {post.aiAdvice}
-                  </p>
-                </div>
+          <div className="space-y-2">
+            <DetailRow label="Method" value={post.brewMethod} />
+            <DetailRow label="Dose / Yield" value={`${post.coffeeWeight}g / ${post.waterWeight}g`} />
+            <DetailRow label="Ratio" value={post.ratio} />
+            <DetailRow label="Bean info" value={[post.varietal, post.process].filter(Boolean).join(' • ') || 'Not listed'} />
+          </div>
+
+          {post.aiAdvice ? (
+            <div className="mt-4 rounded-[1.5rem] border border-white/70 bg-white/65 p-4">
+              <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-amber-700">
+                <Sparkles className="h-4 w-4" />
+                Brew Coach
               </div>
-            )}
-            
-            <div className="mt-3 text-center text-xs text-stone-500 font-medium">
-              Click to flip back ↺
+              <p className="text-sm font-medium leading-6 text-stone-700">{post.aiAdvice}</p>
             </div>
+          ) : null}
+
+          <div className="mt-auto pt-5 text-center text-xs font-bold uppercase tracking-[0.18em] text-stone-500">
+            Tap to flip back
           </div>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.article>
   );
 }
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-[1.25rem] bg-white/70 px-3 py-2.5">
+      <span className="text-xs font-black uppercase tracking-[0.18em] text-stone-500">{label}</span>
+      <span className="text-right text-sm font-bold text-stone-800">{value}</span>
+    </div>
+  );
+}
+

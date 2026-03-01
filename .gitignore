@@ -8,3 +8,11 @@ coverage/
 .vscode
 .claude
 .codex
+
+# Playwright
+.playwright/
+playwright-report/
+test-results/
+blob-report/
+playwright/.auth/
+.playwright-cli/
