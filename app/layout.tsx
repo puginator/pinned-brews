@@ -19,6 +19,10 @@ const nunito = Nunito({
 export const metadata: Metadata = {
   title: APP_NAME,
   description: 'Pin your best brews, discover what coffee people are actually making, and map the roasters worth chasing.',
+  icons: {
+    icon: '/brew-methods/v60-circle-badge.svg',
+    shortcut: '/brew-methods/v60-circle-badge.svg',
+  },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -37,4 +41,3 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     </html>
   );
 }
-
