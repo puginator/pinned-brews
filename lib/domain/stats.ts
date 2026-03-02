@@ -1,4 +1,4 @@
-import { BADGES, FLAVOR_PROFILES, RANKS } from '@/lib/domain/constants';
+import { BADGES, CORE_BREW_METHODS, FLAVOR_PROFILES, RANKS } from '@/lib/domain/constants';
 import type { AchievementProgress, Badge, UserStats } from '@/lib/domain/types';
 
 export type StatsPostInput = {
@@ -172,7 +172,7 @@ export function getAchievementProgress(userId: string | null, posts: StatsPostIn
   const floralPosts = userPosts.filter((post) => post.flavorProfiles.includes('Floral')).length;
   const chocolateyPosts = userPosts.filter((post) => post.flavorProfiles.includes('Chocolatey')).length;
   const sweetPosts = userPosts.filter((post) => post.flavorProfiles.includes('Sweet')).length;
-  const coreMethods = new Set(['V60', 'Aeropress', 'Chemex', 'Espresso', 'French Press', 'Batch Brew']);
+  const coreMethods = new Set<string>(CORE_BREW_METHODS);
   const usedCoreMethods = new Set(userPosts.map((post) => post.brewMethod).filter((method) => coreMethods.has(method))).size;
 
   const methodCounts = new Map<string, number>();

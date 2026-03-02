@@ -41,6 +41,8 @@ const optionalText = (maxLength: number) =>
     .optional()
     .transform((value) => (value && value.length > 0 ? value : undefined));
 
+const customBrewMethod = optionalText(40);
+
 export const onboardingSchema = z.object({
   handle: z
     .string()
@@ -67,34 +69,64 @@ export const roasterSchema = z.object({
   website: optionalUrl.optional().transform((value) => value ?? undefined),
 });
 
-export const postSchema = z.object({
-  coffeeName: cleanedText(80),
-  coffeeUrl: optionalUrl.optional().transform((value) => value ?? undefined),
-  roasterId: z.string().uuid(),
-  brewMethod: z.enum(BREW_METHODS),
-  coffeeWeight: z.number().positive().max(999.9),
-  waterWeight: z.number().positive().max(9999.9),
-  ratio: z.string().trim().min(3).max(24),
-  country: optionalText(80),
-  varietal: optionalText(80),
-  process: optionalText(80),
-  tasteNotes: cleanedText(500),
-  flavorProfiles: z.array(z.enum(FLAVOR_PROFILES)).max(FLAVOR_PROFILES.length),
-  rating: z.number().min(0.5).max(5).refine((value) => Number.isInteger(value * 2), 'Use half-star increments.'),
-  aiAdvice: optionalText(280),
-  color: z.enum(POST_COLORS),
-});
+export const postSchema = z
+  .object({
+    coffeeName: cleanedText(80),
+    coffeeUrl: optionalUrl.optional().transform((value) => value ?? undefined),
+    roasterId: z.string().uuid(),
+    brewMethod: z.enum(BREW_METHODS),
+    customBrewMethod,
+    coffeeWeight: z.number().positive().max(999.9),
+    waterWeight: z.number().positive().max(9999.9),
+    ratio: z.string().trim().min(3).max(24),
+    country: optionalText(80),
+    varietal: optionalText(80),
+    process: optionalText(80),
+    tasteNotes: cleanedText(500),
+    flavorProfiles: z.array(z.enum(FLAVOR_PROFILES)).max(FLAVOR_PROFILES.length),
+    rating: z.number().min(0.5).max(5).refine((value) => Number.isInteger(value * 2), 'Use half-star increments.'),
+    aiAdvice: optionalText(280),
+    color: z.enum(POST_COLORS),
+  })
+  .superRefine((value, ctx) => {
+    if (value.brewMethod === 'Other' && !value.customBrewMethod) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['customBrewMethod'],
+        message: 'Add your custom brew method.',
+      });
+    }
+  })
+  .transform(({ customBrewMethod, ...value }) => ({
+    ...value,
+    brewMethod: value.brewMethod === 'Other' ? customBrewMethod! : value.brewMethod,
+  }));
 
-export const brewCoachSchema = z.object({
-  brewMethod: z.enum(BREW_METHODS),
-  coffeeWeight: z.number().positive().max(999.9),
-  waterWeight: z.number().positive().max(9999.9),
-  ratio: z.string().trim().min(3).max(24),
-  country: optionalText(80),
-  varietal: optionalText(80),
-  process: optionalText(80),
-  tasteNotes: cleanedText(500),
-});
+export const brewCoachSchema = z
+  .object({
+    brewMethod: z.enum(BREW_METHODS),
+    customBrewMethod,
+    coffeeWeight: z.number().positive().max(999.9),
+    waterWeight: z.number().positive().max(9999.9),
+    ratio: z.string().trim().min(3).max(24),
+    country: optionalText(80),
+    varietal: optionalText(80),
+    process: optionalText(80),
+    tasteNotes: cleanedText(500),
+  })
+  .superRefine((value, ctx) => {
+    if (value.brewMethod === 'Other' && !value.customBrewMethod) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['customBrewMethod'],
+        message: 'Add your custom brew method.',
+      });
+    }
+  })
+  .transform(({ customBrewMethod, ...value }) => ({
+    ...value,
+    brewMethod: value.brewMethod === 'Other' ? customBrewMethod! : value.brewMethod,
+  }));
 
 export const reportSchema = z.object({
   targetType: z.enum(['post', 'roaster']),

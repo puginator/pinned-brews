@@ -1,14 +1,50 @@
 export const APP_NAME = 'Pinned Brews';
 
-export const BREW_METHODS = [
+export const CORE_BREW_METHODS = [
   'V60',
+  'Kalita Wave',
   'Aeropress',
+  'Clever Dripper',
   'Chemex',
   'Espresso',
+  'Hario Switch',
+  'Origami',
+  'Fellow Stagg X',
   'French Press',
+  'Moka Pot',
   'Batch Brew',
+] as const;
+
+export const BREW_METHODS = [
+  ...CORE_BREW_METHODS,
   'Other',
 ] as const;
+
+export type BrewMethodMeta = {
+  label: string;
+  icon: string;
+  assetPath?: string;
+};
+
+export const BREW_METHOD_META = [
+  { label: 'V60', icon: 'V', assetPath: '/brew-methods/v60.svg' },
+  { label: 'Kalita Wave', icon: '◌', assetPath: '/brew-methods/kalita-wave.svg' },
+  { label: 'Aeropress', icon: 'A', assetPath: '/brew-methods/aeropress.svg' },
+  { label: 'Clever Dripper', icon: 'C', assetPath: '/brew-methods/clever.svg' },
+  { label: 'Chemex', icon: '⌛', assetPath: '/brew-methods/chemex.svg' },
+  { label: 'Espresso', icon: '☕', assetPath: '/brew-methods/espresso.svg' },
+  { label: 'Hario Switch', icon: 'S', assetPath: '/brew-methods/hario-switch.svg' },
+  { label: 'Origami', icon: '△', assetPath: '/brew-methods/origami.svg' },
+  { label: 'Fellow Stagg X', icon: '✦', assetPath: '/brew-methods/stagg.svg' },
+  { label: 'French Press', icon: 'F', assetPath: '/brew-methods/french-press.svg' },
+  { label: 'Moka Pot', icon: '⬢', assetPath: '/brew-methods/moka-pot.svg' },
+  { label: 'Batch Brew', icon: 'B', assetPath: '/brew-methods/batch-brewer.svg' },
+  { label: 'Other', icon: '…', assetPath: '/brew-methods/other.svg' },
+] as const satisfies readonly BrewMethodMeta[];
+
+export function getBrewMethodMeta(method: string): BrewMethodMeta {
+  return BREW_METHOD_META.find((entry) => entry.label === method) ?? { label: method, icon: '…', assetPath: '/brew-methods/other.svg' };
+}
 
 export const FLAVOR_PROFILES = [
   'Fruity',

@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { AnimatePresence, motion } from 'motion/react';
 import { Beaker, ExternalLink, Flag, Heart, MapPin, Sparkles, Star } from 'lucide-react';
 import type { FeedPost } from '@/lib/domain/types';
+import { BrewMethodIcon } from '@/components/BrewMethodIcon';
 import { slugify } from '@/lib/utils';
 
 export function PostItNote({
@@ -130,8 +131,9 @@ export function PostItNote({
           </div>
 
           <div className="mt-5 flex items-center justify-between border-t border-black/10 pt-4">
-            <div className="rounded-full bg-white/70 px-3 py-1.5 text-xs font-black uppercase tracking-[0.2em] text-stone-600">
-              {post.brewMethod}
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/70 px-2 py-1.5 text-xs font-black uppercase tracking-[0.2em] text-stone-600">
+              <BrewMethodIcon method={post.brewMethod} size={16} />
+              <span>{post.brewMethod}</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -192,7 +194,15 @@ export function PostItNote({
           </div>
 
           <div className="space-y-2">
-            <DetailRow label="Method" value={post.brewMethod} />
+            <DetailRow
+              label="Method"
+              value={
+                <span className="inline-flex items-center gap-2">
+                  <BrewMethodIcon method={post.brewMethod} size={18} />
+                  <span>{post.brewMethod}</span>
+                </span>
+              }
+            />
             <DetailRow label="Dose / Yield" value={`${post.coffeeWeight}g / ${post.waterWeight}g`} />
             <DetailRow label="Ratio" value={post.ratio} />
             <DetailRow label="Bean info" value={[post.varietal, post.process].filter(Boolean).join(' • ') || 'Not listed'} />
@@ -217,7 +227,7 @@ export function PostItNote({
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4 rounded-[1.25rem] bg-white/70 px-3 py-2.5">
       <span className="text-xs font-black uppercase tracking-[0.18em] text-stone-500">{label}</span>

@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Award, PlusCircle, Send, Sparkles, Star } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { BREW_METHODS, FLAVOR_PROFILES, POST_COLORS } from '@/lib/domain/constants';
+import { BREW_METHODS, FLAVOR_PROFILES, POST_COLORS, getBrewMethodMeta } from '@/lib/domain/constants';
+import { BrewMethodIcon } from '@/components/BrewMethodIcon';
 import type { Badge, RoasterRecord, Viewer } from '@/lib/domain/types';
 
 export function NewBrewPageClient({
@@ -42,6 +43,7 @@ export function NewBrewPageClient({
   const [newRoasterLocation, setNewRoasterLocation] = useState('');
   const [newRoasterWebsite, setNewRoasterWebsite] = useState('');
   const [brewMethod, setBrewMethod] = useState<(typeof BREW_METHODS)[number]>('V60');
+  const [customBrewMethod, setCustomBrewMethod] = useState('');
   const [coffeeWeight, setCoffeeWeight] = useState<number | ''>(15);
   const [waterWeight, setWaterWeight] = useState<number | ''>(250);
   const [country, setCountry] = useState('');
@@ -53,6 +55,7 @@ export function NewBrewPageClient({
   const [color, setColor] = useState<(typeof POST_COLORS)[number]>('bg-rose-100');
   const [aiAdvice, setAiAdvice] = useState('');
   const [newlyUnlockedBadges, setNewlyUnlockedBadges] = useState<Badge[]>([]);
+  const displayedMethod = brewMethod === 'Other' && customBrewMethod.trim() ? customBrewMethod.trim() : brewMethod;
 
   const ratio =
     coffeeWeight && waterWeight ? `1:${(Number(waterWeight) / Number(coffeeWeight)).toFixed(1)}` : '---';
@@ -92,6 +95,7 @@ export function NewBrewPageClient({
         },
         body: JSON.stringify({
           brewMethod,
+          customBrewMethod,
           coffeeWeight: Number(coffeeWeight) || 0,
           waterWeight: Number(waterWeight) || 0,
           ratio,
@@ -166,6 +170,7 @@ export function NewBrewPageClient({
           coffeeUrl,
           roasterId: finalRoasterId,
           brewMethod,
+          customBrewMethod,
           coffeeWeight: Number(coffeeWeight),
           waterWeight: Number(waterWeight),
           ratio,
@@ -318,11 +323,27 @@ export function NewBrewPageClient({
               >
                 {BREW_METHODS.map((method) => (
                   <option key={method} value={method}>
-                    {method}
+                    {getBrewMethodMeta(method).icon} {method}
                   </option>
                 ))}
               </select>
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-white px-2.5 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-stone-600 ring-1 ring-stone-200">
+                <BrewMethodIcon method={displayedMethod} size={18} />
+                <span>{displayedMethod}</span>
+              </div>
             </label>
+            {brewMethod === 'Other' ? (
+              <label className="block sm:col-span-2">
+                <span className="mb-1.5 block text-sm font-bold text-stone-700">Custom method</span>
+                <input
+                  required
+                  value={customBrewMethod}
+                  onChange={(event) => setCustomBrewMethod(event.target.value)}
+                  className="w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm font-medium text-stone-700 outline-none transition focus:border-sky-300 focus:bg-white"
+                  placeholder="Origami Air, Switch, Tricolate..."
+                />
+              </label>
+            ) : null}
             <label className="block">
               <span className="mb-1.5 block text-sm font-bold text-stone-700">Coffee (g)</span>
               <input
