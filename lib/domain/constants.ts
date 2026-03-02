@@ -104,7 +104,7 @@ export const REPORT_REASONS = [
   'Other',
 ] as const;
 
-export const AI_DAILY_LIMIT = 10;
+export const AI_DAILY_LIMIT = 2;
 
 export const WRITE_RATE_LIMIT = {
   limit: 20,
